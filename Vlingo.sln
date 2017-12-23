@@ -1,0 +1,39 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27130.2003
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vlingo", "src\Vlingo\Vlingo.csproj", "{7E4F6940-9250-4FED-A8B9-0E9A98EBD57A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{F15802F9-5A0C-418F-B8CF-995E1CA1AEF0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{79C56B0D-5D4F-498D-BA01-A6E4EC06CCDF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vlingo.Tests", "tests\Vlingo.Tests\Vlingo.Tests.csproj", "{DA9AC0A2-CCC2-4361-8CBE-2CA684D11777}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7E4F6940-9250-4FED-A8B9-0E9A98EBD57A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E4F6940-9250-4FED-A8B9-0E9A98EBD57A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E4F6940-9250-4FED-A8B9-0E9A98EBD57A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E4F6940-9250-4FED-A8B9-0E9A98EBD57A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DA9AC0A2-CCC2-4361-8CBE-2CA684D11777}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA9AC0A2-CCC2-4361-8CBE-2CA684D11777}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DA9AC0A2-CCC2-4361-8CBE-2CA684D11777}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DA9AC0A2-CCC2-4361-8CBE-2CA684D11777}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{7E4F6940-9250-4FED-A8B9-0E9A98EBD57A} = {F15802F9-5A0C-418F-B8CF-995E1CA1AEF0}
+		{DA9AC0A2-CCC2-4361-8CBE-2CA684D11777} = {79C56B0D-5D4F-498D-BA01-A6E4EC06CCDF}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {55D83E3D-ABCC-438F-865D-85FADEC8FC8D}
+	EndGlobalSection
+EndGlobal
