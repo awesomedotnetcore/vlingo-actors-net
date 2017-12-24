@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading;
 using Vlingo.Infra;
 
 namespace Vlingo.Plugins.Mailbox
@@ -14,12 +11,18 @@ namespace Vlingo.Plugins.Mailbox
         private readonly InterlockedBoolean _delivering = new InterlockedBoolean();
         private readonly IDispatcher _dispatcher;
         private readonly ConcurrentQueue<Message> _queue = new ConcurrentQueue<Message>();
+
+        public ConcurrentQueueMailbox(IDispatcher dispatcher)
+        {
+            _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
+        }
+
         public void Run()
         {
-            int total = 0;// ConcurrentQueueMailboxSettings.instance().throttlingCount;
+            var total = ConcurrentQueueMailboxSettings.Instance.ThrottlingCount;
             for (var count = 0; count < total; ++count)
             {
-                Message message = Receive();
+                var message = Receive();
                 if (message != null)
                 {
                     message.Deliver();
@@ -34,11 +37,6 @@ namespace Vlingo.Plugins.Mailbox
             {
                 _dispatcher.Execute(this);
             }
-        }
-
-        public ConcurrentQueueMailbox(IDispatcher dispatcher)
-        {
-            _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
         }
 
         public void Close()
@@ -58,7 +56,7 @@ namespace Vlingo.Plugins.Mailbox
 
         public Message Receive()
         {
-            _queue.TryDequeue(out Message message);
+            _queue.TryDequeue(out var message);
             return message;
         }
 

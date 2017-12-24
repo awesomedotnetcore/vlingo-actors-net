@@ -1,37 +1,43 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
-using Vlingo.Plugins;
+using System.Reflection;
+using Vlingo.Infra;
 
 namespace Vlingo.Plugins
 {
     public class PluginLoader
     {
-
         private const string PropertiesFile = "/vlingo-actors.properties";
         private const string PluginNamePrefix = "plugin.name.";
+
+        private PluginLoader()
+        {
+        }
 
         public static void LoadPlugins(IRegistrar registrar)
         {
             new PluginLoader().LoadEnabledPlugins(registrar);
         }
 
-        private PluginLoader() { }
-
-        private ISet<String> FindEnabledPlugins(Properties properties)
+        private static IEnumerable<string> FindEnabledPlugins(Properties properties)
         {
-            ISet<String> enabledPlugins = new HashSet<String>();
+            ISet<string> enabledPlugins = new HashSet<string>();
 
-            //for (Enumeration <?> e = properties.keys(); e.hasMoreElements();)
-            //{
-            //    final String key = (String)e.nextElement();
-            //    if (key.startsWith(pluginNamePrefix))
-            //    {
-            //        if (Boolean.parseBoolean(properties.getProperty(key)))
-            //            enabledPlugins.add(key);
-            //    }
-            //}
+            foreach (var p in properties)
+            {
+                var key = p.Key;
+                if (!key.StartsWith(PluginNamePrefix))
+                {
+                    continue;
+                }
+
+                var value = p.Value;
+                if (bool.TryParse(value, out var enabled) && enabled)
+                {
+                    enabledPlugins.Add(key);
+                }
+            }
 
             return enabledPlugins;
         }
@@ -45,13 +51,17 @@ namespace Vlingo.Plugins
             }
         }
 
-        private Properties LoadProperties()
+        private static Properties LoadProperties()
         {
-            Properties properties = new Properties();
+            var properties = new Properties();
 
             try
             {
-                // properties.load(PluginLoader.class.getResourceAsStream(propertiesFile));
+                var assembly = Assembly.GetExecutingAssembly();
+                using (var stream = assembly.GetManifestResourceStream(PropertiesFile))
+                {
+                    properties.Load(stream);
+                }
             }
             catch (IOException e)
             {
@@ -63,13 +73,13 @@ namespace Vlingo.Plugins
 
         private void RegisterPlugin(IRegistrar registrar, Properties properties, string enabledPlugin)
         {
-            String pluginName = enabledPlugin.Substring(PluginNamePrefix.Length);
-            String classnameKey = $"plugin.{pluginName}.classname";
-            String classname = "";// properties.getProperty(classnameKey);
+            var pluginName = enabledPlugin.Substring(PluginNamePrefix.Length);
+            var classnameKey = $"plugin.{pluginName}.classname";
+            var classname = properties.GetProperty(classnameKey);
 
             try
             {
-                Type pluginClass = Type.GetType(classname);
+                var pluginClass = Type.GetType(classname);
                 var plugin = Activator.CreateInstance(pluginClass) as IPlugin;
                 if (plugin == null)
                 {
@@ -82,12 +92,5 @@ namespace Vlingo.Plugins
                 throw new InvalidOperationException($"Cannot load plugin {classname}");
             }
         }
-    }
-
-    public interface IPlugin
-    {
-        void Close();
-        string Name { get; }
-        void Start(IRegistrar registrar, string name, PluginProperties properties);
     }
 }

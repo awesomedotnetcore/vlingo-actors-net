@@ -1,47 +1,46 @@
-﻿using System;
-using System.Text;
+﻿using System.Globalization;
+using Vlingo.Infra;
 
 namespace Vlingo.Plugins
 {
     public class PluginProperties
     {
-        private string _name;
-        private Properties _properties;
+        private readonly string _name;
+        private readonly Properties _properties;
 
-        public PluginProperties(String name, Properties properties)
+        public PluginProperties(string name, Properties properties)
         {
             _name = name;
             _properties = properties;
         }
 
-        
 
-        //public bool GetBoolean(string key, bool defaultValue)
-        //{
-        //    string value = getString(key, defaultValue.toString());
-        //    return Boolean.parseBoolean(value);
-        //}
+        public bool GetBoolean(string key, bool defaultValue)
+        {
+            string value = Getstring(key, defaultValue.ToString());
+            return bool.Parse(value);
+        }
 
-        //public Float getFloat(String key, Float defaultValue)
-        //{
-        //    String value = getString(key, defaultValue.toString());
-        //    return Float.parseFloat(value);
-        //}
+        public float GetFloat(string key, float defaultValue)
+        {
+            string value = Getstring(key, defaultValue.ToString(CultureInfo.InvariantCulture));
+            return float.Parse(value);
+        }
 
-        //public Integer getInteger(String key, Integer defaultValue)
-        //{
-        //    String value = getString(key, defaultValue.toString());
-        //    return Integer.parseInt(value);
-        //}
+        public int GetInteger(string key, int defaultValue)
+        {
+            string value = Getstring(key, defaultValue.ToString());
+            return int.Parse(value);
+        }
 
-        //public String getString(String key, String defaultValue)
-        //{
-        //    return properties.getProperty(key(key), defaultValue);
-        //}
+        public string Getstring(string key, string defaultValue)
+        {
+            return _properties.GetProperty(Key(key), defaultValue);
+        }
 
-        //private String key(String key)
-        //{
-        //    return "plugin." + name + "." + key;
-        //}
+        private string Key(string key)
+        {
+            return $"plugin.{_name}.{key}";
+        }
     }
 }

@@ -3,11 +3,11 @@
     public class ExecutorDispatcher : IDispatcher
     {
         private volatile bool _closed;
-        /// private readonly ThreadPoolExecutor _executor;
 
+        /// private readonly ThreadPoolExecutor _executor;
         public ExecutorDispatcher(int availableThreads, float numberOfDispatchersFactor)
         {
-            int numberOfThreads = (int)((float)availableThreads * numberOfDispatchersFactor);
+            var numberOfThreads = (int) (availableThreads * numberOfDispatchersFactor);
             //this.executor = (ThreadPoolExecutor)Executors.newFixedThreadPool(numberOfThreads);
             //this.executor.setRejectedExecutionHandler(new RejectionHandler());
         }
@@ -25,7 +25,6 @@
 
         public void Close()
         {
-
             _closed = true;
             // _executor.Shutdown();
         }
