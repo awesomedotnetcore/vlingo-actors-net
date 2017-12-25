@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Vlingo.Plugins;
 
 namespace Vlingo
 {
@@ -42,11 +43,12 @@ namespace Vlingo
 
             Stages.Add(DefaultStage, defaultStage);
 
-            //PluginLoader.loadPlugins(this); // todo
+            PluginLoader.LoadPlugins(this);
         }
 
         public void Register(string name, bool isDefault, IMailboxProvider mailboxProvider)
         {
+            _mailboxProviderKeeper.Keep(name, isDefault, mailboxProvider);
         }
 
 
@@ -191,6 +193,8 @@ namespace Vlingo
                 _mailboxProviderInfos = new Dictionary<string, MailboxProviderInfo>();
             }
 
+           
+
             public IMailbox AssignMailbox(string mailboxName, int hashCode)
             {
                 if (!_mailboxProviderInfos.TryGetValue(mailboxName, out var info))
@@ -228,7 +232,7 @@ namespace Vlingo
                 return _mailboxProviderInfos.ContainsKey(candidateMailboxName);
             }
 
-            private void Keep(string name, bool isDefault, IMailboxProvider mailboxProvider)
+            public void Keep(string name, bool isDefault, IMailboxProvider mailboxProvider)
             {
                 if (_mailboxProviderInfos.Count == 0)
                 {

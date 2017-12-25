@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 
 namespace Vlingo.Plugins.Mailbox
 {
@@ -35,29 +36,29 @@ namespace Vlingo.Plugins.Mailbox
         }
 
 
-        public void Start(IRegistrar registrar, string name, PluginProperties properties)
+        public void Start(IRegistrar registrar, string name, PluginProperties properties, CancellationToken cancellationToken = default(CancellationToken))
         {
             Name = name;
             ConcurrentQueueMailboxSettings.With(properties.GetInteger("dispatcherThrottlingCount", 1));
 
-            CreateExecutorDispatcher(properties);
+            CreateExecutorDispatcher(properties, cancellationToken);
 
             RegisterWith(registrar, properties);
         }
 
-        private void CreateExecutorDispatcher(PluginProperties properties)
+        private void CreateExecutorDispatcher(PluginProperties properties, CancellationToken cancellationToken)
         {
             var numberOfDispatchersFactor = properties.GetFloat("numberOfDispatchersFactor", 1.5f);
 
             _executorDispatcher =
                 new ExecutorDispatcher(
                     System.Environment.ProcessorCount,
-                    numberOfDispatchersFactor);
+                    numberOfDispatchersFactor, cancellationToken);
         }
 
         private void RegisterWith(IRegistrar registrar, PluginProperties properties)
         {
-            var defaultMailbox =  properties.GetBoolean("defaultMailbox", true);
+            var defaultMailbox = properties.GetBoolean("defaultMailbox", true);
 
             registrar.Register(Name, defaultMailbox, this);
         }

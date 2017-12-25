@@ -1,42 +1,44 @@
-﻿namespace Vlingo.Plugins.Mailbox
+﻿using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks.Dataflow;
+
+namespace Vlingo.Plugins.Mailbox
 {
     public class ExecutorDispatcher : IDispatcher
     {
         private volatile bool _closed;
+        private readonly ActionBlock<IMailbox> _actionBlock;
 
-        /// private readonly ThreadPoolExecutor _executor;
-        public ExecutorDispatcher(int availableThreads, float numberOfDispatchersFactor)
+        public ExecutorDispatcher(int availableThreads, float numberOfDispatchersFactor,
+            CancellationToken cancellationToken = default(CancellationToken))
         {
-            var numberOfThreads = (int) (availableThreads * numberOfDispatchersFactor);
-            //this.executor = (ThreadPoolExecutor)Executors.newFixedThreadPool(numberOfThreads);
-            //this.executor.setRejectedExecutionHandler(new RejectionHandler());
+            var numberOfThreads = (int)(availableThreads * numberOfDispatchersFactor);
+
+            _actionBlock = new ActionBlock<IMailbox>(box => box.Run(), new ExecutionDataflowBlockOptions()
+            {
+                CancellationToken = cancellationToken,
+                MaxDegreeOfParallelism = numberOfThreads,
+            });
         }
-
-        //    private class RejectionHandler implements RejectedExecutionHandler
-        //    {
-        //        protected RejectionHandler() { }
-
-        //    public void rejectedExecution(final Runnable runnable, final ThreadPoolExecutor executor)
-        //    {
-        //        if (!executor.isShutdown() && !executor.isTerminated())
-        //            runnable.run();
-        //    }
-        //}
 
         public void Close()
         {
             _closed = true;
-            // _executor.Shutdown();
+            _actionBlock.Complete();
+            _actionBlock.Completion.Wait();
         }
 
         public void Execute(IMailbox mailbox)
         {
-            if (!_closed)
+            if (_closed)
             {
-                if (mailbox.Delivering(true))
-                {
-                    // _executor.execute(mailbox);
-                }
+                return;
+            }
+
+            if (mailbox.Delivering(true))
+            {
+                _actionBlock.Post(mailbox);
             }
         }
 
