@@ -21,7 +21,7 @@ namespace Vlingo
             if (Actor.IsStopped())
             {
                 var deadLetter = new DeadLetter(Actor, MethodInfo, Args);
-                var deadLetters = Actor.Stage.World.DeadLetters;
+                var deadLetters = Actor.Environment.Stage.World.DeadLetters;
                 if (deadLetters != null)
                 {
                     deadLetters.FailedDelivery(deadLetter);

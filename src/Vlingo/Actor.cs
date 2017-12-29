@@ -5,24 +5,19 @@ namespace Vlingo
 {
     public abstract class Actor : IStoppable
     {
-        private const byte FlagReset = 0x00;
-        private const byte FlagStopped = 0x01;
-        private const byte FlagSecured = 0x02;
-        private readonly Environment _environment;
-        private byte _flags;
-        public Address Address => _environment.Address;
+        public Address Address => Environment.Address;
 
-        internal Environment Environment => _environment;
+        internal Environment Environment { get; }
 
-        protected Definition Definition
+        internal Definition Definition
         {
             get
             {
-                if (_environment.IsSecured())
+                if (Environment.IsSecured())
                 {
                     throw new Exception("A secured actor cannot provide its definition.");
                 }
-                return _environment.Definition;
+                return Environment.Definition;
             }
         }
 
@@ -31,11 +26,11 @@ namespace Vlingo
         {
             get
             {
-                if (_environment.IsSecured())
+                if (Environment.IsSecured())
                 {
                     throw new InvalidOperationException("A secured actor cannot provide its stage.");
                 }
-                return _environment.Stage;
+                return Environment.Stage;
             }
         }
 
@@ -47,12 +42,12 @@ namespace Vlingo
                 return false;
             }
 
-            return _environment.Address.Equals(((Actor)obj)._environment.Address);
+            return Environment.Address.Equals(((Actor)obj).Environment.Address);
         }
 
         public override int GetHashCode()
         {
-            return _environment.Address.GetHashCode();
+            return Environment.Address.GetHashCode();
         }
 
 
@@ -80,16 +75,16 @@ namespace Vlingo
 
         public bool IsStopped()
         {
-            return _environment.IsStopped();
+            return Environment.IsStopped();
         }
 
         public void Stop()
         {
             if (!IsStopped())
             {
-                if (_environment.Address.Id != World.DeadlettersId)
+                if (Environment.Address.Id != World.DeadlettersId)
                 {
-                    _environment.Stage.Stop(this);
+                    Environment.Stage.Stop(this);
                 }
             }
         }
@@ -97,7 +92,7 @@ namespace Vlingo
 
         internal T SelfAs<T>()
         {
-            return ActorProxy.CreateFor<T>(this, _environment.Mailbox);
+            return ActorProxy.CreateFor<T>(this, Environment.Mailbox);
         }
 
         /// <summary>
@@ -107,17 +102,16 @@ namespace Vlingo
         protected Actor()
         {
             var env = ActorFactory.ThreadLocalEnvironment.Value;
-            _environment = env ?? new Environment();
+            Environment = env ?? new Environment();
             ActorFactory.ThreadLocalEnvironment.Value = null;
-            _flags = FlagReset;
             InternalSendBeforeStart();
         }
 
         internal void InternalStop()
         {
-            _environment.StopChildren();
+            Environment.StopChildren();
 
-            _environment.SetStopped();
+            Environment.SetStopped();
 
             InternalAfterStop();
         }
@@ -156,7 +150,7 @@ namespace Vlingo
             {
                 var method = typeof(Actor).GetMethod(nameof(InternalBeforeStart));
                 var message = new Message(this, method, new object[] { });
-                _environment.Mailbox.Send(message);
+                Environment.Mailbox.Send(message);
             }
             catch (Exception ex)
             {
