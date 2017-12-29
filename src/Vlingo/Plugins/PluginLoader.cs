@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using Vlingo.Infra;
 
@@ -8,7 +9,7 @@ namespace Vlingo.Plugins
 {
     public class PluginLoader
     {
-        private const string PropertiesFile = "/vlingo-actors.properties";
+        private const string PropertiesFile = "vlingo-actors.properties";
         private const string PluginNamePrefix = "plugin.name.";
 
         private PluginLoader()
@@ -57,7 +58,7 @@ namespace Vlingo.Plugins
 
             try
             {
-                var assembly = Assembly.GetExecutingAssembly();
+                var assembly = Assembly.GetEntryAssembly();
                 using (var stream = assembly.GetManifestResourceStream(PropertiesFile))
                 {
                     properties.Load(stream);

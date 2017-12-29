@@ -26,7 +26,7 @@ namespace Vlingo
                 foreach (var actor in map.Values)
                 {
                     var address = actor.Address;
-                    var parent = actor.InternalParent() == null ? new Address(0, "NONE") : actor.InternalParent().Address;
+                    var parent = actor.Environment.Parent == null ? new Address(0, "NONE") : actor.Environment.Parent.Address;
                     Console.WriteLine($"DIR: DUMP: ACTOR: {address} PARENT: {parent}");
                 }
             }

@@ -15,6 +15,11 @@ namespace Vlingo
         public Actor Parent { get; }
         public Type Type { get; }
 
+        public Definition(Type type, IEnumerable<object> parameters)
+            : this(type, parameters, null, null, null)
+        {
+        }
+
 
         public Definition(Type type, IEnumerable<object> parameters, Actor parent, string actorName)
             : this(type, parameters, parent, null, actorName)
@@ -46,6 +51,11 @@ namespace Vlingo
         {
             var type = typeof(TActor);
             return new Definition(type, parameters, parent, actorName);
+        }
+
+        public static Definition Has(Type type, IEnumerable<object> parameters)
+        {
+            return new Definition(type, parameters);
         }
 
 

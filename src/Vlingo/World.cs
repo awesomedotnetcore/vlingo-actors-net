@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Vlingo.Plugins;
 
 namespace Vlingo
@@ -15,14 +16,16 @@ namespace Vlingo
         private const string DefaultStage = "__defaultStage";
 
         private static readonly Configuration DefaultConfiguration = new Configuration();
-
-        public IDeadLetters DeadLetters { get; private set; }
+        private readonly LoggerProviderKeeper _loggerProviderKeeper;
         private readonly MailboxProviderKeeper _mailboxProviderKeeper;
+        private ILogger _defaultLogger;
         private IStoppable _publicRoot;
 
 
         public Dictionary<string, Stage> Stages;
         public Configuration Configuration { get; }
+
+        public IDeadLetters DeadLetters { get; private set; }
         public Actor DefaultParent { get; private set; }
 
 
@@ -36,6 +39,7 @@ namespace Vlingo
             Name = name;
             Configuration = configuration;
             Scheduler = new Scheduler();
+            _loggerProviderKeeper = new LoggerProviderKeeper();
             _mailboxProviderKeeper = new MailboxProviderKeeper();
             Stages = new Dictionary<string, Stage>();
 
@@ -44,11 +48,24 @@ namespace Vlingo
             Stages.Add(DefaultStage, defaultStage);
 
             PluginLoader.LoadPlugins(this);
+
+            defaultStage.ActorFor<IStoppable>(
+                Definition.Has<PrivateRootActor>(Definition.NoParameters, PrivateRootName),
+                null,
+                Address.From(PrivateRootId, PrivateRootName),
+                null);
         }
 
         public void Register(string name, bool isDefault, IMailboxProvider mailboxProvider)
         {
             _mailboxProviderKeeper.Keep(name, isDefault, mailboxProvider);
+        }
+
+        public void Register(string name, bool isDefault, ILoggerProvider loggerProvider)
+        {
+            _loggerProviderKeeper.Keep(name, isDefault, loggerProvider);
+
+            _defaultLogger = _loggerProviderKeeper.FindDefault().CreateLogger();
         }
 
 
@@ -105,6 +122,7 @@ namespace Vlingo
             _publicRoot = publicRoot;
         }
 
+
         public Stage Stage()
         {
             return StageNamed(DefaultStage);
@@ -152,8 +170,21 @@ namespace Vlingo
                 }
 
 
+                _loggerProviderKeeper.Close();
                 _mailboxProviderKeeper.Close();
             }
+        }
+
+        protected ILogger FindDefaultLogger()
+        {
+            if (_defaultLogger != null)
+            {
+                return _defaultLogger;
+            }
+
+            _defaultLogger = _loggerProviderKeeper.FindDefault().CreateLogger();
+
+            return _defaultLogger;
         }
 
         internal string FindDefaultMailboxName()
@@ -193,7 +224,6 @@ namespace Vlingo
                 _mailboxProviderInfos = new Dictionary<string, MailboxProviderInfo>();
             }
 
-           
 
             public IMailbox AssignMailbox(string mailboxName, int hashCode)
             {
@@ -203,14 +233,14 @@ namespace Vlingo
                     // todo : IllegalStateException
                 }
 
-                return info._mailboxProvider.ProvideMailboxFor(hashCode);
+                return info.MailboxProvider.ProvideMailboxFor(hashCode);
             }
 
             public void Close()
             {
                 foreach (var kv in _mailboxProviderInfos)
                 {
-                    kv.Value._mailboxProvider.Close();
+                    kv.Value.MailboxProvider.Close();
                 }
             }
 
@@ -218,9 +248,9 @@ namespace Vlingo
             {
                 foreach (var kv in _mailboxProviderInfos)
                 {
-                    if (kv.Value._isDefault)
+                    if (kv.Value.IsDefault)
                     {
-                        return kv.Value._name;
+                        return kv.Value.Name;
                     }
                 }
                 // todo : IllegalStateException
@@ -252,9 +282,9 @@ namespace Vlingo
                 foreach (var key in _mailboxProviderInfos.Keys)
                 {
                     var info = _mailboxProviderInfos[key];
-                    if (info._isDefault)
+                    if (info.IsDefault)
                     {
-                        _mailboxProviderInfos[key] = new MailboxProviderInfo(info._name, info._mailboxProvider, false);
+                        _mailboxProviderInfos[key] = new MailboxProviderInfo(info.Name, info.MailboxProvider, false);
                     }
                 }
             }
@@ -262,16 +292,95 @@ namespace Vlingo
 
         private class MailboxProviderInfo
         {
-            internal readonly bool _isDefault;
-            internal readonly IMailboxProvider _mailboxProvider;
-            internal readonly string _name;
+            internal readonly bool IsDefault;
+            internal readonly IMailboxProvider MailboxProvider;
+            internal readonly string Name;
 
 
             public MailboxProviderInfo(string name, IMailboxProvider mailboxProvider, bool isDefault)
             {
-                _name = name;
-                _mailboxProvider = mailboxProvider;
-                _isDefault = isDefault;
+                Name = name;
+                MailboxProvider = mailboxProvider;
+                IsDefault = isDefault;
+            }
+        }
+
+        private class LoggerProviderInfo
+        {
+            internal readonly bool IsDefault;
+            internal readonly ILoggerProvider LoggerProvider;
+            internal readonly string Name;
+
+            internal LoggerProviderInfo(string name, ILoggerProvider loggerProvider, bool isDefault)
+            {
+                Name = name;
+                LoggerProvider = loggerProvider;
+                IsDefault = isDefault;
+            }
+        }
+
+        private class LoggerProviderKeeper
+        {
+            private readonly Dictionary<string, LoggerProviderInfo> _loggerProviderInfos;
+
+            internal LoggerProviderKeeper()
+            {
+                _loggerProviderInfos = new Dictionary<string, LoggerProviderInfo>();
+            }
+
+            public void Close()
+            {
+                foreach (var kv in _loggerProviderInfos)
+                {
+                    kv.Value.LoggerProvider.Close();
+                }
+            }
+
+            public ILoggerProvider FindDefault()
+            {
+                var logger = _loggerProviderInfos.Values.FirstOrDefault(f => f.IsDefault);
+                if (logger == null)
+                {
+                    throw new InvalidOperationException("No registered default LoggerProvider.");
+                }
+
+                return logger.LoggerProvider;
+            }
+
+            public void Keep(string name, bool isDefault, ILoggerProvider loggerProvider)
+            {
+                if (!_loggerProviderInfos.Any())
+                {
+                    isDefault = true;
+                }
+
+                if (isDefault)
+                {
+                    UndefaultCurrentDefault();
+                }
+
+                _loggerProviderInfos[name] = new LoggerProviderInfo(name, loggerProvider, isDefault);
+            }
+
+            private ILoggerProvider FindNamed(string name)
+            {
+                var logger = _loggerProviderInfos.Values.FirstOrDefault(f => string.Equals(f.Name, name));
+                if (logger == null)
+                {
+                    throw new InvalidOperationException($"No registered LoggerProvider named: {name}");
+                }
+                return logger.LoggerProvider;
+            }
+
+            private void UndefaultCurrentDefault()
+            {
+                foreach (var kv in _loggerProviderInfos)
+                {
+                    if (kv.Value.IsDefault)
+                    {
+                        _loggerProviderInfos[kv.Key] = new LoggerProviderInfo(kv.Value.Name, kv.Value.LoggerProvider, false);
+                    }
+                }
             }
         }
     }

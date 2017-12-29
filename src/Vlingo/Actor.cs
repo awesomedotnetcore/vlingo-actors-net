@@ -12,11 +12,13 @@ namespace Vlingo
         private byte _flags;
         public Address Address => _environment.Address;
 
+        internal Environment Environment => _environment;
+
         protected Definition Definition
         {
             get
             {
-                if (InternalIsSecured())
+                if (_environment.IsSecured())
                 {
                     throw new Exception("A secured actor cannot provide its definition.");
                 }
@@ -29,7 +31,7 @@ namespace Vlingo
         {
             get
             {
-                if (InternalIsSecured())
+                if (_environment.IsSecured())
                 {
                     throw new InvalidOperationException("A secured actor cannot provide its stage.");
                 }
@@ -37,29 +39,6 @@ namespace Vlingo
             }
         }
 
-        protected Actor()
-        {
-            _environment = ActorFactory.ThreadLocalEnvironment.Value;
-            ActorFactory.ThreadLocalEnvironment.Value = null;
-            _flags = FlagReset;
-            InternalSendBeforeStart();
-        }
-
-        public bool IsStopped()
-        {
-            return InternalIsStopped();
-        }
-
-        public void Stop()
-        {
-            if (!IsStopped())
-            {
-                if (_environment.Address.Id != World.DeadlettersId)
-                {
-                    _environment.Stage.Stop(this);
-                }
-            }
-        }
 
         public override bool Equals(object obj)
         {
@@ -68,7 +47,7 @@ namespace Vlingo
                 return false;
             }
 
-            return _environment.Address.Equals(((Actor) obj)._environment.Address);
+            return _environment.Address.Equals(((Actor)obj)._environment.Address);
         }
 
         public override int GetHashCode()
@@ -76,22 +55,6 @@ namespace Vlingo
             return _environment.Address.GetHashCode();
         }
 
-        public void Secure()
-        {
-            _flags |= FlagSecured;
-        }
-
-        public override string ToString()
-        {
-            return $"Actor[type={GetType().Name} address={_environment.Address}]";
-        }
-
-
-        public TestState ViewTestState()
-        {
-            // override for concrete actor state
-            return new TestState();
-        }
 
         protected void AfterRestart(Exception reason)
         {
@@ -115,39 +78,48 @@ namespace Vlingo
             // override
         }
 
-        protected T ChildActorFor<T>(Definition definition)
+        public bool IsStopped()
         {
-            return _environment.Stage.ActorFor<T>(definition, this);
+            return _environment.IsStopped();
         }
 
-        protected Actor Parent()
+        public void Stop()
         {
-            if (InternalIsSecured())
+            if (!IsStopped())
             {
-                throw new InvalidOperationException("A secured actor cannot provide its parent.");
+                if (_environment.Address.Id != World.DeadlettersId)
+                {
+                    _environment.Stage.Stop(this);
+                }
             }
-            return InternalParent();
         }
 
-        protected T SelfAs<T>()
+
+        internal T SelfAs<T>()
         {
             return ActorProxy.CreateFor<T>(this, _environment.Mailbox);
         }
 
-        protected IOutcomeInterest<object> SelfAsOutcomeInterest(object reference)
+        /// <summary>
+        /// internal
+        /// </summary>
+
+        protected Actor()
         {
-            var outcomeAware = ActorProxy.CreateFor<IOutcomeAware<object, object>>(typeof(IOutcomeAware<object, object>), this, _environment.Mailbox);
-            return new OutcomeInterestActorProxy<object, object>(outcomeAware, reference);
+            var env = ActorFactory.ThreadLocalEnvironment.Value;
+            _environment = env ?? new Environment();
+            ActorFactory.ThreadLocalEnvironment.Value = null;
+            _flags = FlagReset;
+            InternalSendBeforeStart();
         }
 
-        protected Stage StageNamed(string name)
+        internal void InternalStop()
         {
-            return _environment.Stage.World.StageNamed(name);
-        }
+            _environment.StopChildren();
 
-        internal void InternalAddChild(Actor child)
-        {
-            _environment.Children.Add(child);
+            _environment.SetStopped();
+
+            InternalAfterStop();
         }
 
         internal void InternalAfterStop()
@@ -164,7 +136,6 @@ namespace Vlingo
             }
         }
 
-
         internal void InternalBeforeStart()
         {
             try
@@ -177,27 +148,6 @@ namespace Vlingo
                 // TODO: Supervise
                 Console.WriteLine($"vlingo/actors: Actor beforeStart() failed: {ex.Message}");
             }
-        }
-
-        internal Environment InternalEnvironment()
-        {
-            return _environment;
-        }
-
-
-        internal bool InternalIsSecured()
-        {
-            return (_flags & FlagSecured) == FlagSecured;
-        }
-
-        internal bool InternalIsStopped()
-        {
-            return (_flags & FlagStopped) == FlagStopped;
-        }
-
-        internal Actor InternalParent()
-        {
-            return _environment.Parent;
         }
 
         internal void InternalSendBeforeStart()
@@ -214,30 +164,5 @@ namespace Vlingo
             }
         }
 
-
-        internal void InternalSetStopped()
-        {
-            _flags |= FlagStopped;
-        }
-
-
-        internal void InternalStop()
-        {
-            InternalStopChildren();
-
-            InternalSetStopped();
-
-            InternalAfterStop();
-        }
-
-        internal void InternalStopChildren()
-        {
-            for (var i = 0; i < _environment.Children.Count;)
-            {
-                var actor = _environment.Children[i];
-                actor.SelfAs<IStoppable>().Stop();
-                _environment.Children.RemoveAt(i);
-            }
-        }
     }
 }

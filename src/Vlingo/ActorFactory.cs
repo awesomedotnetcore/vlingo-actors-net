@@ -32,7 +32,7 @@ namespace Vlingo
                 ;
             }
 
-            parent?.InternalAddChild(actor);
+            parent?.Environment.AddChild(actor);
 
             return actor;
         }
