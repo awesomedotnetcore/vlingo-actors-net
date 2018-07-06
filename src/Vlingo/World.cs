@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Vlingo.Logging;
 using Vlingo.Plugins;
 
 namespace Vlingo
@@ -36,7 +37,7 @@ namespace Vlingo
 
         private World(string name, Configuration configuration)
         {
-            Name = name;
+                Name = name;
             Configuration = configuration;
             Scheduler = new Scheduler();
             _loggerProviderKeeper = new LoggerProviderKeeper();
@@ -175,8 +176,12 @@ namespace Vlingo
             }
         }
 
-        protected ILogger FindDefaultLogger()
+        private ILogger FindDefaultLogger()
         {
+
+            ILog l = LogProvider.GetLogger("");
+  
+
             if (_defaultLogger != null)
             {
                 return _defaultLogger;

@@ -5,6 +5,7 @@ using System.Text;
 namespace Vlingo
 {
     public interface ILogger
+        : Vlingo.Logging.ILog
     {
         //public static Logger noOpLogger()
         //{
@@ -18,7 +19,7 @@ namespace Vlingo
 
         void Close();
         bool IsEnabled();
-        void Log(String message);
+        void Log(int level,string message,params object[] parameters);
         string Name { get; }
     }
 
